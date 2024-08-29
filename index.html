@@ -6,77 +6,60 @@
     <title>My Google Docs Organizer</title>
     <script src="https://apis.google.com/js/api.js"></script>
     <style>
-        :root {
-            --primary-color: #4169E1; /* Royal Blue */
-            --secondary-color: #C0C0C0; /* Silver */
-            --background-color: #000000; /* Black */
-            --text-color: #FFFFFF; /* White */
-        }
-
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
             margin: 0;
             padding: 0;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            background-color: #000000;
+            color: #C0C0C0;
         }
-
         header {
-            background-color: var(--primary-color);
-            color: var(--text-color);
+            background-color: #4169E1;
+            color: #FFFFFF;
             padding: 1rem;
-            width: 100%;
             text-align: center;
         }
-
         .container {
             width: 33.33%;
-            max-width: 500px;
-            margin: 20px auto;
+            margin: auto;
             overflow: hidden;
             padding: 20px;
         }
-
         .section-header {
-            background-color: var(--secondary-color);
-            color: var(--background-color);
+            background-color: #1E3C72;
+            color: #C0C0C0;
             padding: 10px;
             cursor: pointer;
             margin-bottom: 5px;
             border-radius: 5px;
+            text-align: center;
         }
-
         .section-header:hover {
-            background-color: var(--primary-color);
-            color: var(--text-color);
+            background-color: #2E5CB8;
         }
-
         .doc-list {
             list-style-type: none;
             padding: 0;
             display: none;
         }
-
         .doc-list li {
             margin-bottom: 10px;
+            background-color: #1A1A1A;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
         }
-
         .doc-list a {
             text-decoration: none;
-            color: var(--primary-color);
+            color: #4169E1;
         }
-
         .doc-list a:hover {
             text-decoration: underline;
         }
-
         .create-new-btn {
-            background-color: var(--primary-color);
-            color: var(--text-color);
+            background-color: #4169E1;
+            color: #FFFFFF;
             border: none;
             padding: 10px 15px;
             cursor: pointer;
@@ -85,10 +68,8 @@
             border-radius: 5px;
             width: 100%;
         }
-
         .create-new-btn:hover {
-            background-color: var(--secondary-color);
-            color: var(--background-color);
+            background-color: #2E5CB8;
         }
     </style>
 </head>
@@ -98,26 +79,20 @@
     </header>
     <div class="container">
         <section>
-            <div class="section-header" onclick="toggleSection('journals-docs')">
-                <h2>Journals</h2>
+            <div class="section-header" onclick="toggleSection('file-list')">
+                <h2>My Documents</h2>
             </div>
-            <ul id="journals-docs" class="doc-list">
+            <ul id="file-list" class="doc-list">
+                <!-- Documents will be listed here -->
+            </ul>
+        </section>
+        <section>
+            <div class="section-header" onclick="toggleSection('create-new')">
+                <h2>Create New Document</h2>
+            </div>
+            <ul id="create-new" class="doc-list">
                 <li><button class="create-new-btn" onclick="createNewDoc('Journal')">Create New Journal</button></li>
-            </ul>
-        </section>
-        <section>
-            <div class="section-header" onclick="toggleSection('personal-docs')">
-                <h2>Personal Documents</h2>
-            </div>
-            <ul id="personal-docs" class="doc-list">
                 <li><button class="create-new-btn" onclick="createNewDoc('Personal')">Create New Personal Document</button></li>
-            </ul>
-        </section>
-        <section>
-            <div class="section-header" onclick="toggleSection('project-docs')">
-                <h2>Project Documents</h2>
-            </div>
-            <ul id="project-docs" class="doc-list">
                 <li><button class="create-new-btn" onclick="createNewDoc('Project')">Create New Project</button></li>
             </ul>
         </section>
@@ -126,6 +101,7 @@
     <script>
         const CLIENT_ID = '741568016177-0htm6oj2tv6289tdhmlb0eqki7rbm7cb.apps.googleusercontent.com';
         const API_KEY = 'AIzaSyApjmrRNgU7rRWhsy7NK9tE_tbN5wOShtM';
+        const FOLDER_ID = '1QRW0T9XmrODWPpRdxBkmGxRJfi4FE90L';
         const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
@@ -134,12 +110,14 @@
         }
 
         function initClient() {
+            console.log('Initializing GAPI client...');
             gapi.client.init({
                 apiKey: API_KEY,
                 clientId: CLIENT_ID,
                 discoveryDocs: DISCOVERY_DOCS,
                 scope: SCOPES
             }).then(function () {
+                console.log('GAPI client initialized');
                 gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
                 updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
             }, function(error) {
@@ -148,21 +126,41 @@
         }
 
         function updateSigninStatus(isSignedIn) {
+            console.log('Sign-in status:', isSignedIn);
             if (isSignedIn) {
                 listFiles();
             } else {
-                gapi.auth2.getAuthInstance().signIn();
+                gapi.auth2.getAuthInstance().signIn().then(function() {
+                    console.log('User signed in');
+                    listFiles();
+                }, function(error) {
+                    console.error('Error signing in', error);
+                });
             }
         }
 
         function listFiles() {
+            console.log('Listing files...');
             gapi.client.drive.files.list({
+                'q': `'${FOLDER_ID}' in parents`,
                 'pageSize': 10,
                 'fields': "files(id, name)"
             }).then(function(response) {
                 var files = response.result.files;
+                console.log('Files retrieved:', files);
                 if (files && files.length > 0) {
-                    updateDocumentLists(files);
+                    var fileList = document.getElementById('file-list');
+                    fileList.innerHTML = '';
+                    for (var i = 0; i < files.length; i++) {
+                        var file = files[i];
+                        var li = document.createElement('li');
+                        var a = document.createElement('a');
+                        a.href = 'https://docs.google.com/document/d/' + file.id + '/edit';
+                        a.target = '_blank';
+                        a.textContent = file.name;
+                        li.appendChild(a);
+                        fileList.appendChild(li);
+                    }
                 } else {
                     console.log('No files found.');
                 }
@@ -171,42 +169,13 @@
             });
         }
 
-        function updateDocumentLists(files) {
-            const categories = {
-                'journals-docs': [],
-                'personal-docs': [],
-                'project-docs': []
-            };
-
-            files.forEach(file => {
-                if (file.name.toLowerCase().includes('journal')) {
-                    categories['journals-docs'].push(file);
-                } else if (file.name.toLowerCase().includes('project')) {
-                    categories['project-docs'].push(file);
-                } else {
-                    categories['personal-docs'].push(file);
-                }
-            });
-
-            for (let category in categories) {
-                const list = document.getElementById(category);
-                categories[category].forEach(doc => {
-                    const li = document.createElement('li');
-                    const a = document.createElement('a');
-                    a.textContent = doc.name;
-                    a.href = 'https://docs.google.com/document/d/' + doc.id + '/edit';
-                    a.target = '_blank';
-                    li.appendChild(a);
-                    list.insertBefore(li, list.lastElementChild);
-                });
-            }
-        }
-
         function createNewDoc(category) {
+            console.log('Creating new document:', category);
             gapi.client.drive.files.create({
                 resource: {
                     name: category + ' - ' + new Date().toISOString().split('T')[0],
-                    mimeType: 'application/vnd.google-apps.document'
+                    mimeType: 'application/vnd.google-apps.document',
+                    parents: [FOLDER_ID]
                 }
             }).then(function(response) {
                 console.log('Document created:', response.result);
@@ -227,7 +196,10 @@
         }
 
         // Load the Google API client library
-        gapi.load('client:auth2', initClient);
+        function loadGapiClient() {
+            gapi.load('client', handleClientLoad);
+        }
     </script>
+    <script async defer src="https://apis.google.com/js/api.js" onload="loadGapiClient()"></script>
 </body>
 </html>
