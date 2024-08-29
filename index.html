@@ -102,29 +102,24 @@
                 <li><button class="create-new-btn" onclick="createNewDoc('Project')">Create New Project</button></li>
             </ul>
         </section>
-        <a href="https://drive.google.com/drive/folders/1QRW0T9XmrODWPpRdxBkmGxRJfi4FE90L?usp=drive_link" class="folder-link" target="_blank">Open Journal Folder in Google Drive</a>
     </div>
 
     <script>
         const CLIENT_ID = '741568016177-0htm6oj2tv6289tdhmlb0eqki7rbm7cb.apps.googleusercontent.com';
         const API_KEY = 'YOUR_API_KEY'; // Replace with your actual API Key
         const FOLDER_ID = '1QRW0T9XmrODWPpRdxBkmGxRJfi4FE90L';
-        const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
-        const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/docs';
 
         function initClient() {
             gapi.client.init({
                 apiKey: API_KEY,
                 clientId: CLIENT_ID,
-                discoveryDocs: DISCOVERY_DOCS,
-                scope: SCOPES
+                discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
+                scope: 'https://www.googleapis.com/auth/drive.file'
             }).then(function () {
                 // Listen for sign-in state changes
                 gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
                 // Handle the initial sign-in state
                 updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-            }, function(error) {
-                console.error('Error initializing GAPI client', error);
             });
         }
 
@@ -143,8 +138,6 @@
                 }
             }).then(function(response) {
                 window.open('https://docs.google.com/document/d/' + response.result.id + '/edit', '_blank');
-            }, function(error) {
-                console.error('Error creating new document', error);
             });
         }
 
